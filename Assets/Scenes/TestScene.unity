@@ -118,7 +118,7 @@ GameObject:
   - component: {fileID: 966308253}
   - component: {fileID: 966308252}
   m_Layer: 0
-  m_Name: MapGenerator
+  m_Name: MapDrawer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -132,7 +132,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 966308251}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f0a4151af88529142ae25f3a876ecffe, type: 3}
+  m_Script: {fileID: 11500000, guid: b1d396f5ac7d28c4c845c575539c1a9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   wallTile: {fileID: 1730816250245660, guid: e24fbce89e74e8749a0f04918935fa13, type: 2}
@@ -144,15 +144,15 @@ MonoBehaviour:
   width: 50
   height: 50
   seed: test1
-  useRandomSeed: 0
+  useRandomSeed: 1
   wallThreshold: 4
   smoothingIterations: 2
-  initialFillPercent: 50
+  fillPercent: 50
   connectRooms: 0
   removeWalls: 0
   removeRooms: 0
   wallSizeThreshold: 20
-  roomSizeThreshold: 30
+  roomSizeThreshold: 20
 --- !u!4 &966308253
 Transform:
   m_ObjectHideFlags: 0

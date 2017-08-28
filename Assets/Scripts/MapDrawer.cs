@@ -64,40 +64,38 @@ public class MapDrawer : MonoBehaviour
     void DrawMap()
     {
         mapGO = new GameObject("Map");
-        if (MAP != null)
+        // Draw background map.
+        for (int x = 0; x < width; x++)
         {
-            // Draw background map.
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    GameObject toInstantiate = (MAP.map[x, y] == (int)MAP.TILETYPE.WALL) ? wallTile : floorTile;
-                    Vector3 pos = new Vector3(-width / 2 + x, -height / 2 + y, 0);
-                    GameObject instance = Instantiate(toInstantiate, pos, Quaternion.identity) as GameObject;
-                    instance.transform.SetParent(mapGO.transform);
-                }
+                bool isWall = MAP.map[x, y] == (int)MapGenerator.TILETYPE.WALL;
+                GameObject toInstantiate = isWall ? wallTile : floorTile;
+                Vector3 pos = new Vector3(-width / 2 + x, -height / 2 + y, 0);
+                GameObject instance = Instantiate(toInstantiate, pos, Quaternion.identity) as GameObject;
+                instance.transform.SetParent(mapGO.transform);
+            }
+        }
+
+        // Draw room and edge tile markers.
+        foreach (Room room in MAP.rooms)
+        {
+            foreach (Coord tile in room.tiles)
+            {
+                Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
+                GameObject instance = Instantiate(roomMarkerTile, pos, Quaternion.identity) as GameObject;
+                instance.transform.SetParent(mapGO.transform);
             }
 
-            // Draw room and edge tile markers.
-            foreach (Room room in MAP.rooms)
+            foreach (Coord tile in room.edgeTiles)
             {
-                foreach (Coord tile in room.tiles)
-                {
-                    Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
-                    GameObject instance = Instantiate(roomMarkerTile, pos, Quaternion.identity) as GameObject;
-                    instance.transform.SetParent(mapGO.transform);
-                }
-
-                foreach (Coord tile in room.edgeTiles)
-                {
-                    Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
-                    GameObject instance = Instantiate(edgeMarkerTile, pos, Quaternion.identity) as GameObject;
-                    instance.transform.SetParent(mapGO.transform);
-                }
+                Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
+                GameObject instance = Instantiate(edgeMarkerTile, pos, Quaternion.identity) as GameObject;
+                instance.transform.SetParent(mapGO.transform);
             }
         }
     }
 
     //Vector3 CoordToWorldPoint(Coord tile) { return new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0); }
-    
+
 }
