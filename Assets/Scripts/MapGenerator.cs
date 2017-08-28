@@ -53,19 +53,6 @@ public class MapGenerator
     }
 
 
-
-    // void ProcessMap()
-    // {
-    //     if (removeWalls) { RemoveWallsBySize(wallSizeThreshold); }
-    //     rooms = FindRoomsInMap();
-    //     if (removeRooms) { RemoveRoomsBySize(roomSizeThreshold); }
-    //     rooms.Sort();
-    //     if (connectRooms) { ConnectAllRooms(rooms); }
-    // }
-
-
-
-    // public void ConnectAllRooms(List<Room> allRooms)
     public void ConnectAllRooms()
     {
         Coord bestTileA = new Coord();
