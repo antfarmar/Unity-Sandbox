@@ -60,7 +60,7 @@ public class MapGenerator : MonoBehaviour
     {
         map = new int[width, height];
         RandomFillMap();
-        SmoothMap();
+        SmoothMap(smoothingIterations);
         ProcessMap();
     }
 
@@ -73,21 +73,20 @@ public class MapGenerator : MonoBehaviour
         {
             for (int y = 1; y < height - 1; y++)
             {
-                map[x, y] = (rand.Next(0, 100) < initialFillPercent) ? (int)TILETYPE.WALL : (int)TILETYPE.FLOOR;
+                map[x, y] = (rand.Next(1, 101) < initialFillPercent) ? (int)TILETYPE.WALL : (int)TILETYPE.FLOOR;
             }
         }
     }
 
-    void SmoothMap()
+    void SmoothMap(int iterations)
     {
-        for (int i = 0; i < smoothingIterations; i++)
+        for (int i = 0; i < iterations; i++)
         {
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
                 {
                     int neighbourWallTiles = GetSurroundingWallCount(x, y);
-
                     if (neighbourWallTiles > wallThreshold)
                         map[x, y] = (int)TILETYPE.WALL;
                     else if (neighbourWallTiles < wallThreshold)
@@ -102,9 +101,9 @@ public class MapGenerator : MonoBehaviour
 
     void ProcessMap()
     {
-        if (removeWalls) { RemoveWalls(); }
-        rooms = FindRoomsFromMap();
-        if (removeRooms) { RemoveRooms(); }
+        if (removeWalls) { RemoveWallsBySize(wallSizeThreshold); }
+        rooms = FindRoomsInMap();
+        if (removeRooms) { RemoveRoomsBySize(roomSizeThreshold); }
         rooms.Sort();
         if (connectRooms) { ConnectAllRooms(rooms); }
     }
@@ -243,10 +242,9 @@ public class MapGenerator : MonoBehaviour
 
 
 
-    List<Room> FindRoomsFromMap()
+    List<Room> FindRoomsInMap()
     {
         List<Room> rooms = new List<Room>();
-
         List<List<Coord>> roomRegions = GetRegions((int)TILETYPE.FLOOR);
         foreach (List<Coord> roomRegion in roomRegions)
         {
@@ -257,12 +255,12 @@ public class MapGenerator : MonoBehaviour
 
 
 
-    void RemoveRooms()
+    void RemoveRoomsBySize(int size)
     {
         List<Room> roomsToRemove = new List<Room>();
         foreach (Room room in rooms)
         {
-            if (room.tiles.Count < roomSizeThreshold)
+            if (room.tiles.Count < size)
             {
                 roomsToRemove.Add(room);
                 foreach (Coord tile in room.tiles)
@@ -282,12 +280,12 @@ public class MapGenerator : MonoBehaviour
 
 
 
-    void RemoveWalls()
+    void RemoveWallsBySize(int size)
     {
         List<List<Coord>> wallRegions = GetRegions((int)TILETYPE.WALL);
         foreach (List<Coord> wallRegion in wallRegions)
         {
-            if (wallRegion.Count < wallSizeThreshold)
+            if (wallRegion.Count < size)
             {
                 foreach (Coord tile in wallRegion)
                 {
@@ -461,27 +459,29 @@ public class MapGenerator : MonoBehaviour
 
         public List<Coord> FindEdgeTiles(List<Coord> tiles, int[,] map)
         {
-            //List<Coord> edges = new List<Coord>();
-            HashSet<Coord> edgeSet = new HashSet<Coord>();
+            List<Coord> edges = new List<Coord>();
             foreach (Coord tile in tiles)
             {
+                bool found = false;
                 for (int x = tile.x - 1; x <= tile.x + 1; x++)
                 {
                     for (int y = tile.y - 1; y <= tile.y + 1; y++)
                     {
-                        if (x == tile.x || y == tile.y)
+                        if (map[x, y] == (int)TILETYPE.WALL)
                         {
-                            if (map[x, y] == (int)TILETYPE.WALL)
+                            // Skip diagonals.
+                            if (x == tile.x || y == tile.y)
                             {
-                                // edges.Add(tile); // Bug: Creates duplicates
-                                edgeSet.Add(tile); // No duplicates in HashSets
+                                edges.Add(tile);                                
+                                found = true;
+                                break;
                             }
                         }
                     }
+                    if (found) break;
                 }
             }
-            // return edges;
-            return edgeSet.ToList();
+            return edges;
         }
 
 
