@@ -2,38 +2,83 @@
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
-public class MapGenerator
+public class MapGenerator : MonoBehaviour
 {
+
+    public GameObject wallTile;
+    public GameObject floorTile;
+    public GameObject roomMarkerTile;
+    public GameObject edgeMarkerTile;
     public int width;
     public int height;
-    public int[,] map;
-    public List<Room> rooms;
-    public enum TILETYPE : int { WALL, FLOOR };
+    public string seed;
+    public bool useRandomSeed;
+
+    [Range(0, 8)]
+    public int wallThreshold;
+
+    [Range(0, 10)]
+    public int smoothingIterations;
+
+    [Range(0, 100)]
+    public int initialFillPercent;
+
+    public bool connectRooms;
+    public bool removeWalls;
+    public bool removeRooms;
+    public int wallSizeThreshold;
+    public int roomSizeThreshold;
+    private GameObject mapGO;
+
+    enum TILETYPE : int { WALL, FLOOR };
+
+    int[,] map;
+    List<Room> rooms;
 
 
 
-    public MapGenerator(int width, int height)
+    // ________________________ METHODS ____________________________
+    void Start()
     {
-        this.width = width;
-        this.height = height;
+        GenerateMap();
+        DrawMap();
+    }
+
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            GameObject.Destroy(mapGO);
+            GenerateMap();
+            DrawMap();
+        }
+    }
+
+    void GenerateMap()
+    {
         map = new int[width, height];
+        RandomFillMap();
+        SmoothMap(smoothingIterations);
+        ProcessMap();
     }
 
 
-    public void RandomFillMap(int fillPercent, string seed)
+    void RandomFillMap()
     {
+        if (useRandomSeed) { seed = Time.time.ToString(); }
         System.Random rand = new System.Random(seed.GetHashCode());
         for (int x = 1; x < width - 1; x++)
         {
             for (int y = 1; y < height - 1; y++)
             {
-                map[x, y] = (rand.Next(1, 101) < fillPercent) ? (int)TILETYPE.WALL : (int)TILETYPE.FLOOR;
+                map[x, y] = (rand.Next(1, 101) < initialFillPercent) ? (int)TILETYPE.WALL : (int)TILETYPE.FLOOR;
             }
         }
     }
 
-    public void SmoothMap(int iterations, int threshold)
+    void SmoothMap(int iterations)
     {
         for (int i = 0; i < iterations; i++)
         {
@@ -42,9 +87,9 @@ public class MapGenerator
                 for (int y = 0; y < height; y++)
                 {
                     int neighbourWallTiles = GetSurroundingWallCount(x, y);
-                    if (neighbourWallTiles > threshold)
+                    if (neighbourWallTiles > wallThreshold)
                         map[x, y] = (int)TILETYPE.WALL;
-                    else if (neighbourWallTiles < threshold)
+                    else if (neighbourWallTiles < wallThreshold)
                         map[x, y] = (int)TILETYPE.FLOOR;
 
                 }
@@ -54,19 +99,18 @@ public class MapGenerator
 
 
 
-    // void ProcessMap()
-    // {
-    //     if (removeWalls) { RemoveWallsBySize(wallSizeThreshold); }
-    //     rooms = FindRoomsInMap();
-    //     if (removeRooms) { RemoveRoomsBySize(roomSizeThreshold); }
-    //     rooms.Sort();
-    //     if (connectRooms) { ConnectAllRooms(rooms); }
-    // }
+    void ProcessMap()
+    {
+        if (removeWalls) { RemoveWallsBySize(wallSizeThreshold); }
+        rooms = FindRoomsInMap();
+        if (removeRooms) { RemoveRoomsBySize(roomSizeThreshold); }
+        rooms.Sort();
+        if (connectRooms) { ConnectAllRooms(rooms); }
+    }
 
 
 
-    // public void ConnectAllRooms(List<Room> allRooms)
-    public void ConnectAllRooms()
+    void ConnectAllRooms(List<Room> allRooms)
     {
         Coord bestTileA = new Coord();
         Coord bestTileB = new Coord();
@@ -74,13 +118,13 @@ public class MapGenerator
         Room bestRoomB = new Room();
 
         // while (allRooms.Count > 1)
-        for (int i = rooms.Count; i > 1; i--)
+        for (int i = allRooms.Count; i > 1; i--)
         {
             int bestDistance = Int32.MaxValue;
 
-            foreach (Room roomA in rooms)
+            foreach (Room roomA in allRooms)
             {
-                foreach (Room roomB in rooms)
+                foreach (Room roomB in allRooms)
                 {
                     if (roomA == roomB) { continue; }
 
@@ -90,7 +134,7 @@ public class MapGenerator
                         {
                             Coord tileA = roomA.edgeTiles[tileIndexA];
                             Coord tileB = roomB.edgeTiles[tileIndexB];
-                            int distanceBetweenRooms = (int)(Math.Pow(tileA.x - tileB.x, 2) + Math.Pow(tileA.y - tileB.y, 2));
+                            int distanceBetweenRooms = (int)(Mathf.Pow(tileA.x - tileB.x, 2) + Mathf.Pow(tileA.y - tileB.y, 2));
 
                             if (distanceBetweenRooms < bestDistance)
                             {
@@ -110,7 +154,7 @@ public class MapGenerator
 
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
-        //Debug.DrawLine(CoordToWorldPoint(tileA), CoordToWorldPoint(tileB), Color.green, 2, false);
+        Debug.DrawLine(CoordToWorldPoint(tileA), CoordToWorldPoint(tileB), Color.green, 2, false);
         Room.MakeSingleRoom(roomA, roomB);
         rooms.Remove(roomB);
 
@@ -151,14 +195,14 @@ public class MapGenerator
         int step = Math.Sign(dx);
         int gradientStep = Math.Sign(dy);
 
-        int longest = Math.Abs(dx);
-        int shortest = Math.Abs(dy);
+        int longest = Mathf.Abs(dx);
+        int shortest = Mathf.Abs(dy);
 
         if (longest < shortest)
         {
             inverted = true;
-            longest = Math.Abs(dy);
-            shortest = Math.Abs(dx);
+            longest = Mathf.Abs(dy);
+            shortest = Mathf.Abs(dx);
 
             step = Math.Sign(dy);
             gradientStep = Math.Sign(dx);
@@ -197,20 +241,21 @@ public class MapGenerator
     }
 
 
-    public List<Room> FindRoomsInMap()
+
+    List<Room> FindRoomsInMap()
     {
         List<Room> rooms = new List<Room>();
         List<List<Coord>> roomRegions = GetRegions((int)TILETYPE.FLOOR);
         foreach (List<Coord> roomRegion in roomRegions)
         {
-            rooms.Add(new Room(roomRegion, (int)TILETYPE.WALL, map));
+            rooms.Add(new Room(roomRegion, map));
         }
-        this.rooms = rooms;
         return rooms;
     }
 
 
-    public void RemoveRoomsBySize(int size)
+
+    void RemoveRoomsBySize(int size)
     {
         List<Room> roomsToRemove = new List<Room>();
         foreach (Room room in rooms)
@@ -232,7 +277,10 @@ public class MapGenerator
     }
 
 
-    public void RemoveWallsBySize(int size)
+
+
+
+    void RemoveWallsBySize(int size)
     {
         List<List<Coord>> wallRegions = GetRegions((int)TILETYPE.WALL);
         foreach (List<Coord> wallRegion in wallRegions)
@@ -305,9 +353,11 @@ public class MapGenerator
                 }
             }
         }
+
         return tiles;
     }
 
+    // ______________________ HELPER FUNCTIONS ___________________
 
     int GetSurroundingWallCount(int gridX, int gridY)
     {
@@ -333,6 +383,128 @@ public class MapGenerator
         return wallCount;
     }
 
+
+
+    void DrawMap()
+    {
+        mapGO = new GameObject("Map");
+        if (map != null)
+        {
+            // Draw background map.
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    GameObject toInstantiate = (map[x, y] == (int)TILETYPE.WALL) ? wallTile : floorTile;
+                    Vector3 pos = new Vector3(-width / 2 + x, -height / 2 + y, 0);
+                    GameObject instance = Instantiate(toInstantiate, pos, Quaternion.identity) as GameObject;
+                    instance.transform.SetParent(mapGO.transform);
+                }
+            }
+
+            // Draw room and edge tile markers.
+            foreach (Room room in rooms)
+            {
+                foreach (Coord tile in room.tiles)
+                {
+                    Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
+                    GameObject instance = Instantiate(roomMarkerTile, pos, Quaternion.identity) as GameObject;
+                    instance.transform.SetParent(mapGO.transform);
+                }
+
+                foreach (Coord tile in room.edgeTiles)
+                {
+                    Vector3 pos = new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0);
+                    GameObject instance = Instantiate(edgeMarkerTile, pos, Quaternion.identity) as GameObject;
+                    instance.transform.SetParent(mapGO.transform);
+                }
+            }
+        }
+    }
+
+
     bool IsInMapRange(int x, int y) { return x >= 0 && x < width && y >= 0 && y < height; }
-    
-}
+    Vector3 CoordToWorldPoint(Coord tile) { return new Vector3(-width / 2 + tile.x, -height / 2 + tile.y, 0); }
+
+
+    // ___________________________________________ INNER CLASS
+
+    struct Coord
+    {
+        public int x;
+        public int y;
+
+        public Coord(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+
+    class Room : IComparable<Room>
+    {
+        public List<Coord> tiles;
+        public List<Coord> edgeTiles;
+        public int roomSize;
+
+        public Room() { }
+
+        public Room(List<Coord> roomTiles, int[,] map)
+        {
+            tiles = roomTiles;
+            roomSize = tiles.Count;
+            edgeTiles = FindEdgeTiles(roomTiles, map);
+        }
+
+        public List<Coord> FindEdgeTiles(List<Coord> tiles, int[,] map)
+        {
+            List<Coord> edges = new List<Coord>();
+            foreach (Coord tile in tiles)
+            {
+                bool found = false;
+                for (int x = tile.x - 1; x <= tile.x + 1; x++)
+                {
+                    for (int y = tile.y - 1; y <= tile.y + 1; y++)
+                    {
+                        if (map[x, y] == (int)TILETYPE.WALL)
+                        {
+                            // Skip diagonals.
+                            if (x == tile.x || y == tile.y)
+                            {
+                                edges.Add(tile);                                
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (found) break;
+                }
+            }
+            return edges;
+        }
+
+
+
+        public static void MakeSingleRoom(Room roomA, Room roomB)
+        {
+            roomA.roomSize += roomB.roomSize;
+            foreach (Coord tile in roomB.tiles)
+            {
+                roomA.tiles.Add(tile);
+            }
+
+            foreach (Coord edgeTile in roomB.edgeTiles)
+            {
+                roomA.edgeTiles.Add(edgeTile);
+            }
+        }
+
+
+        public int CompareTo(Room otherRoom)
+        {
+            return otherRoom.roomSize.CompareTo(roomSize);
+        }
+    }
+
+} // END MAPGENERATOR
